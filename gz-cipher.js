@@ -24,40 +24,53 @@ const reportProgress = new Transform({
   }
 })
 
-/* gzip and encrypt */
-// fs.createReadStream(file)
-//   .pipe(zlib.createGzip()) // gzip
-//   .pipe(crypto.createCipheriv(algo, key, iv)) // encrypt; key, iv are buffer here
-//   .pipe(reportProgress)
-//   .pipe(fs.createWriteStream(file + '.gz'))
-//   .on('finish', () => console.log('Done'))
-//   .on('close', () => {
-//     fs.writeFile(
-//       file + '_keys.json',
-//       JSON.stringify({algo, key: key.toString('hex'), iv: iv.toString('hex'), passwd}),
-//       err => {
-//         if (err) throw err
-//         console.log(file + '_keys.json generated')
-//       }
-//     )
-//     console.log(file + ' has been coded with: ')
-//     console.log('key: ' + key.toString('hex'))
-//     console.log('iv: ' + iv.toString('hex'))
-//   })
+if (process.argv[2] === '--help') {
+  console.log('Usage:')
+  console.log('node gz-cipher.js [-e] file [-p password]')
+  console.log('node gz-cipher.js -d file')
+} else if (process.argv[2] === '--version') {
+  console.log('0.0.1')
+} else {
+  /* gzip and encrypt */
+  fs.createReadStream(file)
+    .pipe(zlib.createGzip()) // gzip
+    .pipe(crypto.createCipheriv(algo, key, iv)) // encrypt; key, iv are buffer here
+    .pipe(reportProgress)
+    .pipe(fs.createWriteStream(file + '.gz'))
+    .on('finish', () => console.log('Done'))
+    .on('close', () => {
+      fs.writeFile(
+        file + '_keys.json',
+        JSON.stringify({
+          algo,
+          key: key.toString('hex'),
+          iv: iv.toString('hex'),
+          passwd
+        }),
+        err => {
+          if (err) throw err
+          console.log(file + '_keys.json generated')
+        }
+      )
+      console.log(file + ' has been coded with: ')
+      console.log('key: ' + key.toString('hex'))
+      console.log('iv: ' + iv.toString('hex'))
+    })
 
-/* decrypt and gunzip, use the same ivstr when it was encrypted */
-const keys = JSON.parse(
-  fs.readFileSync(file.slice(0, -3) + '_keys.json', 'utf8')
-)
-fs.createReadStream(file)
-  .pipe(
-    crypto.createDecipheriv(
-      keys.algo,
-      Buffer.from(keys.key, 'hex'),
-      Buffer.from(keys.iv, 'hex')
-    )
-  )
-  .pipe(zlib.createGunzip())
-  .pipe(reportProgress)
-  .pipe(fs.createWriteStream('decoded_' + file.slice(0, -3)))
-  .on('finish', () => console.log('Done'))
+  /* decrypt and gunzip, use the same ivstr when it was encrypted */
+  // const keys = JSON.parse(
+  //   fs.readFileSync(file.slice(0, -3) + '_keys.json', 'utf8')
+  // )
+  // fs.createReadStream(file)
+  //   .pipe(
+  //     crypto.createDecipheriv(
+  //       keys.algo,
+  //       Buffer.from(keys.key, 'hex'),
+  //       Buffer.from(keys.iv, 'hex')
+  //     )
+  //   )
+  //   .pipe(zlib.createGunzip())
+  //   .pipe(reportProgress)
+  //   .pipe(fs.createWriteStream('decoded_' + file.slice(0, -3)))
+  //   .on('finish', () => console.log('Done'))
+}

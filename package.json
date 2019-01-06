@@ -1,0 +1,11 @@
+{
+  "name": "gz-cipher",
+  "version": "1.0.0",
+  "description": "a command line tool to compress and encrypt files with low memory cost",
+  "main": "gz-cipher.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "medifle",
+  "license": "MIT"
+}

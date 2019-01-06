@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 
-// encrypt directory?
+// what if keys.json is not there?
+// encrypt directory? use archive module
+// add as global shell command?
 
 const fs = require('fs')
+const path = require('path')
 const {Transform} = require('stream')
 const zlib = require('zlib')
 const crypto = require('crypto')
 
-const version = '0.0.1'
-let file // filepath
-let passwd = Math.random()
+const version = '1.0.0'
+let filePathObj
+let passwd = Math.random() // generate random password by default
   .toString(36)
   .substring(2)
 let encryptFlag = 2 // 0: encrypt; 1: decrypt; 2: undefined
@@ -43,7 +46,7 @@ if (process.argv[2] === undefined) {
   } else {
     let fileStats = fs.statSync(process.argv[3])
     if (fileStats.isFile) {
-      file = process.argv[3]
+      filePathObj = path.parse(process.argv[3])
       if (encryptFlag === 0 && process.argv[4]) {
         if (process.argv[4].substring(0, 2) === '-p') {
           if (process.argv[5] === undefined) {
@@ -63,29 +66,32 @@ if (process.argv[2] === undefined) {
   }
 }
 
-if (encryptFlag !== 2) {
+if (encryptFlag !== 2 && filePathObj) {
   const algo = 'aes192'
   const key = Buffer.concat([Buffer.from(passwd)], 24) // for aes192-cbc, key length is 192bits/8
   const iv = crypto.randomBytes(16) // for aes, iv length is 128bits/8
 
   const reportProgress = new Transform({
     transform(chunk, encoding, callback) {
-      process.stdout.write('.')
+      process.stdout.write('.') // TODO: show percentage/progress bar
       callback(null, chunk)
     }
   })
 
   if (encryptFlag === 0) {
     /* gzip and encrypt */
-    fs.createReadStream(file)
+    let filepath = path.format(filePathObj)
+    fs.createReadStream(filepath)
       .pipe(zlib.createGzip()) // gzip
       .pipe(crypto.createCipheriv(algo, key, iv)) // encrypt; key, iv are buffer here
       .pipe(reportProgress)
-      .pipe(fs.createWriteStream(file + '.gz'))
-      .on('finish', () => console.log('Done'))
+      .pipe(fs.createWriteStream(filepath + '.gz'))
+      .on('finish', () => {
+        console.log('Done')
+      })
       .on('close', () => {
         fs.writeFile(
-          file + '_keys.json',
+          path.join(filePathObj.dir, `${filePathObj.name}.json`),
           JSON.stringify(
             {
               algo,
@@ -94,33 +100,61 @@ if (encryptFlag !== 2) {
               passwd
             },
             null,
-            2
+            2 // pretty json format
           ),
           err => {
             if (err) throw err
-            console.log(file + '_keys.json generated')
+            console.log(`\n${filepath}.json was generated`)
+            console.log(
+              `Please keep the ${filePathObj.name}.json file in a private space`
+            )
+            console.log(
+              `To decrypt, put the ${
+                filePathObj.name
+              }.json file under the same directory with the encrypted file`
+            )
           }
         )
-        console.log(file + ' has been coded with: ')
+        console.log(`${filepath} has been encrypted into ${filepath}.gz with: `)
         console.log('key: ' + key.toString('hex'))
         console.log('iv: ' + iv.toString('hex'))
       })
   } else if (encryptFlag === 1) {
     /* decrypt and gunzip, use the same ivstr when it was encrypted */
     const keys = JSON.parse(
-      fs.readFileSync(file.slice(0, -3) + '_keys.json', 'utf8')
-    )
-    fs.createReadStream(file)
-      .pipe(
-        crypto.createDecipheriv(
-          keys.algo,
-          Buffer.from(keys.key, 'hex'),
-          Buffer.from(keys.iv, 'hex')
-        )
+      fs.readFileSync(
+        path.join(filePathObj.dir, `${filePathObj.name}.json`),
+        'utf8'
       )
-      .pipe(zlib.createGunzip())
-      .pipe(reportProgress)
-      .pipe(fs.createWriteStream('decoded_' + file.slice(0, -3)))
-      .on('finish', () => console.log('Done'))
+    )
+    // path.parse(filePathObj.name)
+    let oriPathObj = {
+      root: filePathObj.root,
+      dir: filePathObj.dir,
+      base: path.basename(filePathObj.base),
+      ext: path.extname(filePathObj.base),
+      name: path.parse(filePathObj.base).name
+    }
+    console.log(filePathObj.name) //test
+    console.log(oriPathObj) //test
+    let decodedName = oriPathObj.name + '-decoded' + oriPathObj.ext
+    // console.log(decodedName) //test
+
+    // TODO: check existence first
+    // fs.createReadStream(path.format(filePathObj))
+    //   .pipe(
+    //     crypto.createDecipheriv(
+    //       keys.algo,
+    //       Buffer.from(keys.key, 'hex'),
+    //       Buffer.from(keys.iv, 'hex')
+    //     )
+    //   )
+    //   .pipe(zlib.createGunzip())
+    //   .pipe(reportProgress)
+    //   .pipe(fs.createWriteStream(path.join(filePathObj.dir, decodedName)))
+    //   .on('finish', () => console.log('Done'))
+    //   .on('close', () => {
+    //     console.log(path.join(filePathObj.dir, decodedName) + 'was generated')
+    //   })
   }
 }

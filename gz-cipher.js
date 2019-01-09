@@ -120,41 +120,40 @@ if (encryptFlag !== 2 && filePathObj) {
         console.log('iv: ' + iv.toString('hex'))
       })
   } else if (encryptFlag === 1) {
-    /* decrypt and gunzip, use the same ivstr when it was encrypted */
-    const keys = JSON.parse(
-      fs.readFileSync(
-        path.join(filePathObj.dir, `${filePathObj.name}.json`),
-        'utf8'
-      )
-    )
-    // path.parse(filePathObj.name)
     let oriPathObj = {
       root: filePathObj.root,
       dir: filePathObj.dir,
-      base: path.basename(filePathObj.base),
-      ext: path.extname(filePathObj.base),
-      name: path.parse(filePathObj.base).name
+      base: filePathObj.name,
+      ext: path.extname(filePathObj.name),
+      name: path.parse(filePathObj.name).name
     }
-    console.log(filePathObj.name) //test
-    console.log(oriPathObj) //test
+
+    /* decrypt and gunzip, use the same ivstr when it was encrypted */
+    const keys = JSON.parse(
+      fs.readFileSync(
+        path.join(oriPathObj.dir, `${oriPathObj.name}.json`),
+        'utf8'
+      )
+    )
+
     let decodedName = oriPathObj.name + '-decoded' + oriPathObj.ext
-    // console.log(decodedName) //test
+    console.log(decodedName) //test
 
     // TODO: check existence first
-    // fs.createReadStream(path.format(filePathObj))
-    //   .pipe(
-    //     crypto.createDecipheriv(
-    //       keys.algo,
-    //       Buffer.from(keys.key, 'hex'),
-    //       Buffer.from(keys.iv, 'hex')
-    //     )
-    //   )
-    //   .pipe(zlib.createGunzip())
-    //   .pipe(reportProgress)
-    //   .pipe(fs.createWriteStream(path.join(filePathObj.dir, decodedName)))
-    //   .on('finish', () => console.log('Done'))
-    //   .on('close', () => {
-    //     console.log(path.join(filePathObj.dir, decodedName) + 'was generated')
-    //   })
+    fs.createReadStream(path.format(filePathObj))
+      .pipe(
+        crypto.createDecipheriv(
+          keys.algo,
+          Buffer.from(keys.key, 'hex'),
+          Buffer.from(keys.iv, 'hex')
+        )
+      )
+      .pipe(reportProgress)
+      .pipe(zlib.createGunzip())
+      .pipe(fs.createWriteStream(path.join(oriPathObj.dir, decodedName)))
+      .on('finish', () => console.log('Done'))
+      .on('close', () => {
+        console.log(path.join(oriPathObj.dir, decodedName) + ' was generated')
+      })
   }
 }

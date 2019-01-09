@@ -17,14 +17,19 @@ let passwd = Math.random() // generate random password by default
   .substring(2)
 let encryptFlag = 2 // 0: encrypt; 1: decrypt; 2: undefined
 
-if (process.argv[2] === undefined) {
-  throw Error('gz-cipher: No option specified')
-} else if (process.argv[2] === '--help' || process.argv[2] === '-h') {
+const usage = () => {
   console.log('  Usage:')
   console.log('  Encryption:'.padEnd(25) + 'gz-cipher -e file [-p password]')
   console.log('  Decryption:'.padEnd(25) + 'gz-cipher -d file')
   console.log('  -h, --help'.padEnd(25) + 'output usage information')
   console.log('  -v, --version'.padEnd(25) + 'output the version number')
+}
+
+
+if (process.argv[2] === undefined) {
+  throw Error('gz-cipher: No option specified')
+} else if (process.argv[2] === '--help' || process.argv[2] === '-h') {
+  usage()
 } else if (process.argv[2] === '--version' || process.argv[2] === '-v') {
   console.log(version)
 } else if (process.argv[2].substring(0, 1) === '-') {
@@ -64,6 +69,8 @@ if (process.argv[2] === undefined) {
       }
     }
   }
+} else {
+  usage()
 }
 
 if (encryptFlag !== 2 && filePathObj) {
@@ -73,7 +80,7 @@ if (encryptFlag !== 2 && filePathObj) {
 
   const reportProgress = new Transform({
     transform(chunk, encoding, callback) {
-      process.stdout.write('.') // TODO: show percentage/progress bar
+      process.stdout.write('.')
       callback(null, chunk)
     }
   })

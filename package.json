@@ -13,7 +13,9 @@
     "gz-cipher": "./gz-cipher.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test/file-generator && npm run test-encrypt && npm run test-decrypt",
+    "test-encrypt": "node gz-cipher -e big.file",
+    "test-decrypt": "node gz-cipher -d big.file.gz"
   },
   "engines": {
     "node": ">=8.0.0"

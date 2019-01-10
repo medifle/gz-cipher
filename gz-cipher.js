@@ -53,6 +53,7 @@ const cliParser = () => {
 
     if (process.argv[3] === undefined) {
       console.error('gz-cipher: No file specified')
+      return
     } else {
       let fileStats = fs.statSync(process.argv[3])
       if (fileStats.isFile) {
@@ -61,15 +62,18 @@ const cliParser = () => {
           if (process.argv[4].substring(0, 2) === '-p') {
             if (process.argv[5] === undefined) {
               console.error('gz-cipher: No password specified')
+              return
             } else if (process.argv[5].length < 8) {
               console.error(
                 'gz-cipher: Password must contain at least 8 characters'
               )
+              return
             } else {
               passwd = process.argv[5]
             }
           } else {
             console.error('gz-cipher: Not a valid option')
+            return
           }
         }
       }

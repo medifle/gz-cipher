@@ -1,6 +1,6 @@
 {
   "name": "gz-cipher",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "a command-line tool to gzip and encrypt files with low memory cost",
   "keywords": [
     "gzip",
@@ -14,6 +14,9 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=8.0.0"
   },
   "repository": {
     "type": "git",

@@ -83,9 +83,20 @@ const cliParser = () => {
   }
 
   if (encryptFlag !== 2 && filePathObj) {
-    const algo = 'aes192'
-    const key = Buffer.concat([Buffer.from(passwd)], 24) // for aes192-cbc, key length is 192bits/8
+    const algo = 'aes-192-cbc'
+    const keylen = 24
+    const salt = crypto.randomBytes(16)
+    const key = crypto.pbkdf2Sync(passwd, salt, 1000000, keylen, 'sha512') // for aes192-cbc, key length is 192bits/8
     const iv = crypto.randomBytes(16) // for aes, iv length is 128bits/8
+
+    // const algo = 'aes-256-cbc'
+    // const key = Buffer.concat([Buffer.from(passwd)], 32)
+    // const iv = crypto.randomBytes(16)
+
+    // const algo = 'aes-128-cbc'
+    // const key = Buffer.concat([Buffer.from(passwd)], 16)
+    // const iv = crypto.randomBytes(16)
+
 
     let filepath = path.format(filePathObj)
     let stats = fs.statSync(filepath)

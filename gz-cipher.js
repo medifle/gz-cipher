@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 
-// encrypt directory? use archive module
-// add as global shell command?
-// support other common ciphers
+//TODO: support other common ciphers
 
 const fs = require('fs')
 const path = require('path')
@@ -19,7 +17,7 @@ let passwd = Math.random() // generate random password by default
 let encryptFlag = 2 // 0: encrypt; 1: decrypt; 2: undefined
 
 const usage = () => {
-  console.log('  Usage:')
+  console.log('Usage:')
   console.log('  Encryption:'.padEnd(25) + 'gz-cipher -e file [-p password]')
   console.log('  Decryption:'.padEnd(25) + 'gz-cipher -d file')
   console.log('  -h, --help'.padEnd(25) + 'output usage information')

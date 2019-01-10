@@ -1,10 +1,23 @@
 {
   "name": "gz-cipher",
   "version": "1.0.0",
-  "description": "a command line tool to compress and encrypt files with low memory cost",
+  "description": "a command-line tool to gzip and encrypt files with low memory cost",
+  "keywords": [
+    "gzip",
+    "encrypt",
+    "cli",
+    "command-line"
+  ],
   "main": "gz-cipher.js",
+  "bin": {
+    "gz-cipher": "./gz-cipher.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/medifle/gz-cipher.git"
   },
   "author": "medifle",
   "license": "MIT"

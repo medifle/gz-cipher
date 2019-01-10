@@ -1,6 +1,6 @@
 {
   "name": "gz-cipher",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "a command-line tool to gzip and encrypt files with low memory cost",
   "keywords": [
     "gzip",

@@ -12,9 +12,8 @@ const readline = require('readline')
 
 const version = '1.0.0'
 let filePathObj
-let passwd = Math.random() // generate random password by default
-  .toString(36)
-  .substring(2)
+// generate random password by default
+let passwd = crypto.randomBytes(32).toString('hex')
 let encryptFlag = 2 // 0: encrypt; 1: decrypt; 2: undefined
 
 const usage = () => {
@@ -87,20 +86,26 @@ const main = () => {
   }
 
   if (encryptFlag !== 2 && filePathObj) {
-    const algo = 'aes-192-cbc' // default cipher
-    const keylen = 24 // for aes192-cbc, key length is 192bits/8
+    let algo = 'AES-192-CBC' // default cipher, see more on `openssl list-cipher-algorithms`
+    let keylen = 24 // for aes192-cbc, key length is 192bits/8
+    let ivLen = 16 // for AES CBC, iv length is 128bits/8
+    let cipherOption = null
+
+    // const algo = 'AES-256-CBC'
+    // keylen = 32
+
+    // const algo = 'AES-128-CBC'
+    // keylen = 16
+
+    algo = 'id-aes256-GCM'
+    keylen = 32
+    ivLen = 12
+    // cipherOption = {authTagLength: 16}  // default is 16
+
+    const iv = crypto.randomBytes(ivLen)
     const salt = crypto.randomBytes(16)
     const key = crypto.pbkdf2Sync(passwd, salt, 1000000, keylen, 'sha512')
-    const iv = crypto.randomBytes(16) // for aes, iv length is 128bits/8
-
-    // const algo = 'aes-256-cbc'
-    // const key = Buffer.concat([Buffer.from(passwd)], 32)
-    // const iv = crypto.randomBytes(16)
-
-    // const algo = 'aes-128-cbc'
-    // const key = Buffer.concat([Buffer.from(passwd)], 16)
-    // const iv = crypto.randomBytes(16)
-
+    const cipher = crypto.createCipheriv(algo, key, iv, cipherOption)
 
     let filepath = path.format(filePathObj)
     let stats = fs.statSync(filepath)
@@ -138,12 +143,16 @@ const main = () => {
           fs.createReadStream(filepath)
             .pipe(reportProgress)
             .pipe(zlib.createGzip()) // gzip
-            .pipe(crypto.createCipheriv(algo, key, iv)) // encrypt; key, iv are buffer here
+            .pipe(cipher) // encrypt; key, iv are buffer here
             .pipe(fs.createWriteStream(filepath + '.gz'))
             .on('finish', () => {
               console.log('\nDone')
             })
             .on('close', () => {
+              let tag = null
+              if (algo.substring(10) === 'GCM') {
+                tag = cipher.getAuthTag().toString('hex')
+              }
               fs.writeFile(
                 keysPath,
                 JSON.stringify(
@@ -151,7 +160,8 @@ const main = () => {
                     algo,
                     key: key.toString('hex'),
                     iv: iv.toString('hex'),
-                    passwd
+                    passwd,
+                    tag
                   },
                   null,
                   2 // pretty json format
@@ -195,9 +205,14 @@ const main = () => {
           'utf8'
         )
       )
+      const decipher = crypto.createDecipheriv(
+        keys.algo,
+        Buffer.from(keys.key, 'hex'),
+        Buffer.from(keys.iv, 'hex')
+      )
+      decipher.setAuthTag(Buffer.from(keys.tag, 'hex'))
 
       let decodedName = oriPathObj.name + '-decoded' + oriPathObj.ext
-
       let writePath = path.join(oriPathObj.dir, decodedName)
       fs.open(`${writePath}`, 'wx', (err, fd) => {
         if (err) {
@@ -209,13 +224,7 @@ const main = () => {
         }
         fs.createReadStream(path.format(filePathObj))
           .pipe(reportProgress)
-          .pipe(
-            crypto.createDecipheriv(
-              keys.algo,
-              Buffer.from(keys.key, 'hex'),
-              Buffer.from(keys.iv, 'hex')
-            )
-          )
+          .pipe(decipher)
           .pipe(zlib.createGunzip())
           .on('error', err => {
             process.stdout.write('Hello, World')

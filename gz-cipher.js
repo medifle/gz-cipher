@@ -31,7 +31,7 @@ const writeWaitingPercent = p => {
   process.stdout.write(`Waiting ... ${p}%`)
 }
 
-const cliParser = () => {
+const main = () => {
   if (process.argv[2] === undefined) {
     console.error('gz-cipher: No option specified')
   } else if (process.argv[2] === '--help' || process.argv[2] === '-h') {
@@ -57,10 +57,10 @@ const cliParser = () => {
       return
     } else {
       let fileStats = fs.statSync(process.argv[3])
-      if (fileStats.isDirectory) {
-        console.error('This is a directory, please zip it first')
+      if (fileStats.isDirectory()) {
+        console.error(`${process.argv[3]} is a directory, please zip it first`)
       }
-      if (!fileStats.isDirectory && fileStats.isFile) {
+      if (!fileStats.isDirectory() && fileStats.isFile()) {
         filePathObj = path.parse(process.argv[3])
         if (encryptFlag === 0 && process.argv[4]) {
           if (process.argv[4].substring(0, 2) === '-p') {
@@ -87,10 +87,10 @@ const cliParser = () => {
   }
 
   if (encryptFlag !== 2 && filePathObj) {
-    const algo = 'aes-192-cbc'
-    const keylen = 24
+    const algo = 'aes-192-cbc' // default cipher
+    const keylen = 24 // for aes192-cbc, key length is 192bits/8
     const salt = crypto.randomBytes(16)
-    const key = crypto.pbkdf2Sync(passwd, salt, 1000000, keylen, 'sha512') // for aes192-cbc, key length is 192bits/8
+    const key = crypto.pbkdf2Sync(passwd, salt, 1000000, keylen, 'sha512')
     const iv = crypto.randomBytes(16) // for aes, iv length is 128bits/8
 
     // const algo = 'aes-256-cbc'
@@ -234,4 +234,4 @@ const cliParser = () => {
   }
 }
 
-cliParser()
+main()

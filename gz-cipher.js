@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-//TODO: support other common ciphers
+//TODO:
+// support other common ciphers
 
 const fs = require('fs')
 const path = require('path')
@@ -43,7 +44,7 @@ const cliParser = () => {
       if (!options.includes('d')) {
         encryptFlag = 0
       } else {
-        console.error("gz-cipher: Can't specify both -e and -d")
+        console.error("gz-cipher: Can't specify both -e and -d options")
       }
     } else if (options.includes('d')) {
       encryptFlag = 1
@@ -56,7 +57,10 @@ const cliParser = () => {
       return
     } else {
       let fileStats = fs.statSync(process.argv[3])
-      if (fileStats.isFile) {
+      if (fileStats.isDirectory) {
+        console.error('This is a directory, please zip it first')
+      }
+      if (!fileStats.isDirectory && fileStats.isFile) {
         filePathObj = path.parse(process.argv[3])
         if (encryptFlag === 0 && process.argv[4]) {
           if (process.argv[4].substring(0, 2) === '-p') {

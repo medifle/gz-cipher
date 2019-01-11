@@ -1,6 +1,6 @@
 {
   "name": "gz-cipher",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "a command-line tool to gzip and encrypt files with low memory cost",
   "keywords": [
     "gzip",
@@ -16,7 +16,8 @@
     "test": "node test/file-generator && npm run test-both",
     "test-both": "npm run test-encrypt && npm run test-decrypt",
     "test-encrypt": "node gz-cipher -e big.file",
-    "test-decrypt": "node gz-cipher -d big.file.gz"
+    "test-decrypt": "node gz-cipher -d big.file.gz",
+    "test-clean": "rm -f big.json big.file.gz big-decoded.file"
   },
   "engines": {
     "node": ">=10.0.0"

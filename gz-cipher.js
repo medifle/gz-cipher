@@ -1,27 +1,56 @@
 #!/usr/bin/env node
 
-//TODO:
-// support other common ciphers
-
+const version = '1.1.0'
 const fs = require('fs')
 const path = require('path')
 const {Transform} = require('stream')
 const zlib = require('zlib')
 const crypto = require('crypto')
 const readline = require('readline')
-
-const version = '1.0.0'
 let filePathObj
+const algoSupported = [
+  'aes-128-cbc',
+  'aes-192-cbc',
+  'aes-256-cbc',
+  'aes-128-gcm',
+  'aes-192-gcm',
+  'aes-256-gcm'
+]
+let algo = algoSupported[1] // default algorithm, see more on `openssl list-cipher-algorithms`
 // generate random password by default
 let passwd = crypto.randomBytes(32).toString('hex')
 let encryptFlag = 2 // 0: encrypt; 1: decrypt; 2: undefined
 
 const usage = () => {
   console.log('Usage:')
-  console.log('  Encryption:'.padEnd(25) + 'gz-cipher -e file [-p password]')
+  console.log(
+    '  Encryption:'.padEnd(25) + 'gz-cipher -e file [-a cipher] [-p password]'
+  )
   console.log('  Decryption:'.padEnd(25) + 'gz-cipher -d file')
   console.log('  -h, --help'.padEnd(25) + 'output usage information')
   console.log('  -v, --version'.padEnd(25) + 'output the version number')
+}
+
+const setPasswd = i => {
+  let arg = process.argv[i]
+  if (arg === undefined) {
+    throw Error('gz-cipher: No password specified')
+  } else if (arg.length < 8) {
+    throw Error('gz-cipher: Password must contain at least 8 characters')
+  } else {
+    passwd = arg
+  }
+}
+
+const setCipher = i => {
+  let arg = process.argv[i]
+  if (arg === undefined) {
+    throw Error('gz-cipher: No cipher specified')
+  } else if (!algoSupported.includes(arg)) {
+    throw Error('gz-cipher: Not a supported cipher')
+  } else {
+    algo = arg
+  }
 }
 
 const writeWaitingPercent = p => {
@@ -62,17 +91,32 @@ const main = () => {
       if (!fileStats.isDirectory() && fileStats.isFile()) {
         filePathObj = path.parse(process.argv[3])
         if (encryptFlag === 0 && process.argv[4]) {
-          if (process.argv[4].substring(0, 2) === '-p') {
-            if (process.argv[5] === undefined) {
-              console.error('gz-cipher: No password specified')
+          if (process.argv[4].substring(0, 2) === '-a') {
+            try {
+              setCipher(5)
+            } catch (error) {
+              console.error(`${error}`)
               return
-            } else if (process.argv[5].length < 8) {
-              console.error(
-                'gz-cipher: Password must contain at least 8 characters'
-              )
+            }
+            if (process.argv[6]) {
+              if (process.argv[6].substring(0, 2) === '-p') {
+                try {
+                  setPasswd(7)
+                } catch (error) {
+                  console.error(`${error}`)
+                  return
+                }
+              } else {
+                console.error('gz-cipher: Not a valid option')
+                return
+              }
+            }
+          } else if (process.argv[4].substring(0, 2) === '-p') {
+            try {
+              setPasswd(5)
+            } catch (error) {
+              console.error(`${error}`)
               return
-            } else {
-              passwd = process.argv[5]
             }
           } else {
             console.error('gz-cipher: Not a valid option')
@@ -86,27 +130,6 @@ const main = () => {
   }
 
   if (encryptFlag !== 2 && filePathObj) {
-    let algo = 'AES-192-CBC' // default cipher, see more on `openssl list-cipher-algorithms`
-    let keylen = 24 // for aes192-cbc, key length is 192bits/8
-    let ivLen = 16 // for AES CBC, iv length is 128bits/8
-    let cipherOption = null
-
-    // const algo = 'AES-256-CBC'
-    // keylen = 32
-
-    // const algo = 'AES-128-CBC'
-    // keylen = 16
-
-    algo = 'id-aes256-GCM'
-    keylen = 32
-    ivLen = 12
-    // cipherOption = {authTagLength: 16}  // default is 16
-
-    const iv = crypto.randomBytes(ivLen)
-    const salt = crypto.randomBytes(16)
-    const key = crypto.pbkdf2Sync(passwd, salt, 1000000, keylen, 'sha512')
-    const cipher = crypto.createCipheriv(algo, key, iv, cipherOption)
-
     let filepath = path.format(filePathObj)
     let stats = fs.statSync(filepath)
     let fileSizeInBytes = stats['size']
@@ -114,7 +137,7 @@ const main = () => {
     const reportProgress = new Transform({
       transform(chunk, encoding, callback) {
         chunkLen += chunk.length
-        let percent = (chunkLen) / fileSizeInBytes * 100
+        let percent = (chunkLen / fileSizeInBytes) * 100
         writeWaitingPercent(percent.toFixed(2))
         callback(null, chunk)
       }
@@ -122,6 +145,33 @@ const main = () => {
 
     /* gzip and encrypt */
     if (encryptFlag === 0) {
+      let keylen = 24 // for aes192-cbc, key length is 192bits/8
+      let ivLen = 16 // for AES CBC, iv length is 128bits/8
+      let cipherOption = null
+
+      if (algo !== 'aes-192-cbc') {
+        if (algo === 'aes-256-cbc') {
+          keylen = 32
+        } else if (algo === 'aes-128-cbc') {
+          keylen = 16
+        } else if (algo === 'aes-256-gcm') {
+          keylen = 32
+          ivLen = 12
+          // cipherOption = {authTagLength: 16}  // default for GCM is 16
+        } else if (algo === 'aes-192-gcm') {
+          keylen = 24
+          ivLen = 12
+        } else if (algo === 'aes-128-gcm') {
+          keylen = 16
+          ivLen = 12
+        }
+      }
+
+      const iv = crypto.randomBytes(ivLen)
+      const salt = crypto.randomBytes(16)
+      const key = crypto.pbkdf2Sync(passwd, salt, 1000000, keylen, 'sha512')
+      const cipher = crypto.createCipheriv(algo, key, iv, cipherOption)
+
       fs.open(`${filepath}.gz`, 'wx', (err, fd) => {
         if (err) {
           if (err.code === 'EEXIST') {
@@ -150,7 +200,7 @@ const main = () => {
             })
             .on('close', () => {
               let tag = null
-              if (algo.substring(10) === 'GCM') {
+              if (algo.indexOf('gcm') !== -1) {
                 tag = cipher.getAuthTag().toString('hex')
               }
               fs.writeFile(
@@ -183,7 +233,10 @@ const main = () => {
                     `${filepath} has been encrypted into ${filepath}.gz with: `
                   )
                   console.log('key: ' + key.toString('hex'))
-                  console.log('iv: ' + iv.toString('hex') + '\n')
+                  console.log('iv: ' + iv.toString('hex'))
+                  console.log(
+                    'tag: ' + (tag ? tag.toString('hex') : null) + '\n'
+                  )
                 }
               )
             })
@@ -210,7 +263,9 @@ const main = () => {
         Buffer.from(keys.key, 'hex'),
         Buffer.from(keys.iv, 'hex')
       )
-      decipher.setAuthTag(Buffer.from(keys.tag, 'hex'))
+      if (keys.tag) {
+        decipher.setAuthTag(Buffer.from(keys.tag, 'hex'))
+      }
 
       let decodedName = oriPathObj.name + '-decoded' + oriPathObj.ext
       let writePath = path.join(oriPathObj.dir, decodedName)

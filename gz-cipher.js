@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const version = '1.1.0'
+const version = '1.1.1'
 const fs = require('fs')
 const path = require('path')
 const {Transform} = require('stream')
@@ -218,7 +218,7 @@ const main = () => {
                 ),
                 err => {
                   if (err) throw err
-                  console.log(`\n${filepath}.json was generated`)
+                  console.log('\n' + path.join(filePathObj.dir, `${filePathObj.name}.json`)  + ' was generated')
                   console.log(
                     `Please keep the ${
                       filePathObj.name

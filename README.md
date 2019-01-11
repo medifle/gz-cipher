@@ -16,10 +16,10 @@ $ npm i -g gz-cipher
 ## Usage
 
 ```
-  Encryption:            gz-cipher -e file [-a cipher] [-p password]
-  Decryption:            gz-cipher -d file
-  -h, --help             output usage information
-  -v, --version          output the version number
+Encryption:            gz-cipher -e file [-a cipher] [-p password]
+Decryption:            gz-cipher -d file
+-h, --help             output usage information
+-v, --version          output the version number
 ```
 
 Currently supported ciphers: (see more on `openssl enc -help`)
@@ -32,10 +32,11 @@ aes-192-gcm
 aes-256-gcm
 ```
 
-## Note
+## Notes
 
 `gz-cipher` won't overwrite your files if any output filename is conflict with your existing filename. Please rest assured :)
 
+Directory encryption is not supported for now. However, if you zip the directory beforehand, `gz-cipher` still works
 
 ## Backstory
 
